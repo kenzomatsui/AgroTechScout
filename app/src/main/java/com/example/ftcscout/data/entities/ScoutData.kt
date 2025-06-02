@@ -8,13 +8,11 @@ data class ScoutData(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val matchId: Int,
     val teamNumber: Int,
-    val autonomousPixels: Int,
-    val autonomousZone: String,
-    val droneLaunched: Boolean,
-    val teleopLow: Int,
-    val teleopMid: Int,
-    val teleopHigh: Int,
-    val endgameSuspended: Boolean,
-    val endgameDrone: Boolean,
-    val notes: String
+    
+    // Autonomous
+    val isParked: Boolean = false,
+    
+    // Outros
+    val notes: String = "",
+    val cooperationLevel: Int = 0
 ) 

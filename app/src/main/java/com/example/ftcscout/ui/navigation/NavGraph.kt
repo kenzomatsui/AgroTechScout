@@ -10,8 +10,8 @@ import com.example.ftcscout.data.AppDatabase
 import com.example.ftcscout.data.repository.MatchRepository
 import com.example.ftcscout.data.repository.TeamRepository
 import com.example.ftcscout.ui.screens.*
-import com.example.ftcscout.ui.viewmodels.ScoutMatchViewModel
-import com.example.ftcscout.ui.viewmodels.ScoutMatchViewModelFactory
+import com.example.ftcscout.ui.viewmodels.ScoutViewModel
+import com.example.ftcscout.data.repository.ScoutDataRepository
 
 sealed class Screen(val route: String) {
     object Events : Screen("events")
@@ -24,7 +24,7 @@ sealed class Screen(val route: String) {
     object MatchDetails : Screen("match/{matchId}") {
         fun createRoute(matchId: Int) = "match/$matchId"
     }
-    object ScoutMatch : Screen("scout/{matchId}/{teamNumber}") {
+    object Scout : Screen("scout/{matchId}/{teamNumber}") {
         fun createRoute(matchId: Int, teamNumber: Int) = "scout/$matchId/$teamNumber"
     }
     object Analysis : Screen("analysis")
@@ -58,7 +58,7 @@ fun NavGraph(
                     navController.navigate(Screen.MatchDetails.createRoute(matchId))
                 },
                 onScoutClick = { matchId, teamNumber ->
-                    navController.navigate(Screen.ScoutMatch.createRoute(matchId, teamNumber))
+                    navController.navigate(Screen.Scout.createRoute(matchId, teamNumber))
                 },
                 onBackClick = { navController.popBackStack() }
             )
@@ -82,28 +82,29 @@ fun NavGraph(
                     navController.popBackStack()
                 },
                 onScoutClick = { teamNumber ->
-                    navController.navigate(Screen.ScoutMatch.createRoute(matchId, teamNumber))
+                    navController.navigate(Screen.Scout.createRoute(matchId, teamNumber))
                 }
             )
         }
 
-        composable(Screen.ScoutMatch.route) { backStackEntry ->
+        composable(Screen.Scout.route) { backStackEntry ->
             val matchId = backStackEntry.arguments?.getString("matchId")?.toIntOrNull() ?: return@composable
             val teamNumber = backStackEntry.arguments?.getString("teamNumber")?.toIntOrNull() ?: return@composable
 
             val context = LocalContext.current
             val database = AppDatabase.getDatabase(context)
-            val matchRepository = MatchRepository(database.matchDao())
-            val teamRepository = TeamRepository(database.teamDao())
-            val factory = ScoutMatchViewModelFactory(matchRepository, teamRepository)
-            val viewModel: ScoutMatchViewModel = viewModel(factory = factory)
+            val scoutDataRepository = ScoutDataRepository(database.scoutDataDao())
+            val viewModel: ScoutViewModel = viewModel(
+                factory = ScoutViewModel.Factory(scoutDataRepository, matchId, teamNumber)
+            )
 
-            ScoutMatchScreen(
+            ScoutScreen(
                 matchId = matchId,
                 teamNumber = teamNumber,
                 onBackClick = {
                     navController.popBackStack()
-                }
+                },
+                viewModel = viewModel
             )
         }
 

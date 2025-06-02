@@ -14,7 +14,7 @@ import com.example.ftcscout.data.entities.*
         Match::class,
         ScoutData::class
     ],
-    version = 2,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
