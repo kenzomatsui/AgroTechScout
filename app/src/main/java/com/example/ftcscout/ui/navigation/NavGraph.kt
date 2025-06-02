@@ -4,7 +4,14 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.ftcscout.data.AppDatabase
+import com.example.ftcscout.data.repository.MatchRepository
+import com.example.ftcscout.data.repository.TeamRepository
 import com.example.ftcscout.ui.screens.*
+import com.example.ftcscout.ui.viewmodels.ScoutMatchViewModel
+import com.example.ftcscout.ui.viewmodels.ScoutMatchViewModelFactory
 
 sealed class Screen(val route: String) {
     object Events : Screen("events")
@@ -52,7 +59,8 @@ fun NavGraph(
                 },
                 onScoutClick = { matchId, teamNumber ->
                     navController.navigate(Screen.ScoutMatch.createRoute(matchId, teamNumber))
-                }
+                },
+                onBackClick = { navController.popBackStack() }
             )
         }
 
@@ -82,6 +90,14 @@ fun NavGraph(
         composable(Screen.ScoutMatch.route) { backStackEntry ->
             val matchId = backStackEntry.arguments?.getString("matchId")?.toIntOrNull() ?: return@composable
             val teamNumber = backStackEntry.arguments?.getString("teamNumber")?.toIntOrNull() ?: return@composable
+
+            val context = LocalContext.current
+            val database = AppDatabase.getDatabase(context)
+            val matchRepository = MatchRepository(database.matchDao())
+            val teamRepository = TeamRepository(database.teamDao())
+            val factory = ScoutMatchViewModelFactory(matchRepository, teamRepository)
+            val viewModel: ScoutMatchViewModel = viewModel(factory = factory)
+
             ScoutMatchScreen(
                 matchId = matchId,
                 teamNumber = teamNumber,

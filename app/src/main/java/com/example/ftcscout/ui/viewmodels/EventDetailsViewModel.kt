@@ -54,6 +54,12 @@ class EventDetailsViewModel(
         }
     }
 
+    fun deleteEvent() {
+        viewModelScope.launch {
+            eventRepository.deleteEventById(eventId)
+        }
+    }
+
     class Factory(
         private val eventRepository: EventRepository,
         private val matchRepository: MatchRepository,

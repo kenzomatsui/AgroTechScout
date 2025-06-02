@@ -18,6 +18,9 @@ interface EventDao {
     @Delete
     suspend fun deleteEvent(event: Event)
 
+    @Query("DELETE FROM events WHERE eventId = :eventId")
+    suspend fun deleteEventById(eventId: Int)
+
     @Query("SELECT * FROM events WHERE name LIKE '%' || :query || '%' OR location LIKE '%' || :query || '%'")
     fun searchEvents(query: String): Flow<List<Event>>
 } 

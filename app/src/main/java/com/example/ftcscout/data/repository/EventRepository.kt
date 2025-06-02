@@ -13,5 +13,7 @@ class EventRepository(private val eventDao: EventDao) {
 
     suspend fun deleteEvent(event: Event) = eventDao.deleteEvent(event)
 
+    suspend fun deleteEventById(eventId: Int) = eventDao.deleteEventById(eventId)
+
     fun searchEvents(query: String): Flow<List<Event>> = eventDao.searchEvents(query)
 } 

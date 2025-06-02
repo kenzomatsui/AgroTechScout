@@ -1,16 +1,58 @@
 package com.example.ftcscout.ui.screens
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
+
+// Outras importações que já estavam no seu código:
 import com.example.ftcscout.FTCScoutApplication
 import com.example.ftcscout.data.entities.Match
 import com.example.ftcscout.ui.components.EmptyStateScreen
@@ -23,6 +65,7 @@ fun EventDetailsScreen(
     onTeamClick: (Int) -> Unit,
     onMatchClick: (Int) -> Unit,
     onScoutClick: (Int, Int) -> Unit,
+    onBackClick: () -> Unit,
     viewModel: EventDetailsViewModel = viewModel(
         factory = EventDetailsViewModel.Factory(
             (LocalContext.current.applicationContext as FTCScoutApplication).eventRepository,
@@ -34,14 +77,23 @@ fun EventDetailsScreen(
     val event by viewModel.event.collectAsState()
     val matches by viewModel.matches.collectAsState()
     var showAddMatchDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
+                    }
+                },
                 title = { Text(event?.name ?: "Detalhes do Evento") },
                 actions = {
                     IconButton(onClick = { showAddMatchDialog = true }) {
                         Icon(Icons.Default.Add, contentDescription = "Adicionar Partida")
+                    }
+                    IconButton(onClick = { showDeleteConfirmDialog = true }) {
+                        Icon(Icons.Default.Delete, contentDescription = "Excluir Evento")
                     }
                 }
             )
@@ -60,12 +112,56 @@ fun EventDetailsScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(matches) { match ->
-                        MatchCard(
-                            match = match,
-                            onMatchClick = { onMatchClick(match.matchId) },
-                            onTeamClick = onTeamClick,
-                            onScoutClick = onScoutClick
+                    items(matches, key = { it.matchId }) { match ->
+                        val dismissState = rememberSwipeToDismissBoxState(
+                            confirmValueChange = {
+                                if (it == SwipeToDismissBoxValue.EndToStart) {
+                                    viewModel.deleteMatch(match)
+                                    true
+                                } else {
+                                    false
+                                }
+                            }
+                        )
+
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            backgroundContent = {
+                                val color by animateColorAsState(
+                                    when (dismissState.targetValue) {
+                                        SwipeToDismissBoxValue.Settled -> Color.LightGray
+                                        SwipeToDismissBoxValue.EndToStart -> Color.Red
+                                        SwipeToDismissBoxValue.StartToEnd -> Color.LightGray
+                                    },
+                                    label = ""
+                                )
+                                val scale by animateFloatAsState(
+                                    if (dismissState.targetValue == SwipeToDismissBoxValue.Settled) 0.75f else 1f,
+                                    label = ""
+                                )
+
+                                Box(
+                                    Modifier
+                                        .fillMaxSize()
+                                        .background(color)
+                                        .padding(horizontal = 20.dp),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Excluir",
+                                        modifier = Modifier.scale(scale),
+                                        tint = Color.White
+                                    )
+                                }
+                            },
+                            content = {
+                                MatchCard(
+                                    match = match,
+                                    onTeamClick = onTeamClick,
+                                    onScoutClick = onScoutClick
+                                )
+                            }
                         )
                     }
                 }
@@ -91,13 +187,36 @@ fun EventDetailsScreen(
             }
         )
     }
+
+    if (showDeleteConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmDialog = false },
+            title = { Text("Confirmar Exclusão") },
+            text = { Text("Tem certeza que deseja excluir este evento e todas as partidas associadas?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.viewModelScope.launch {
+                        viewModel.deleteEvent()
+                        showDeleteConfirmDialog = false
+                        onBackClick()
+                    }
+                }) {
+                    Text("Excluir")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MatchCard(
     match: Match,
-    onMatchClick: () -> Unit,
     onTeamClick: (Int) -> Unit,
     onScoutClick: (Int, Int) -> Unit
 ) {
@@ -173,6 +292,12 @@ private fun AddMatchDialog(
     var teamBlue1 by remember { mutableStateOf("") }
     var teamBlue2 by remember { mutableStateOf("") }
 
+    val isInputValid = number.isNotBlank() && number.toIntOrNull() != null &&
+                       teamRed1.isNotBlank() && teamRed1.toIntOrNull() != null &&
+                       teamRed2.isNotBlank() && teamRed2.toIntOrNull() != null &&
+                       teamBlue1.isNotBlank() && teamBlue1.toIntOrNull() != null &&
+                       teamBlue2.isNotBlank() && teamBlue2.toIntOrNull() != null
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Nova Partida") },
@@ -217,18 +342,15 @@ private fun AddMatchDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    if (number.isNotBlank() && teamRed1.isNotBlank() && teamRed2.isNotBlank() &&
-                        teamBlue1.isNotBlank() && teamBlue2.isNotBlank()
-                    ) {
-                        onConfirm(
-                            number.toIntOrNull() ?: 0,
-                            teamRed1.toIntOrNull() ?: 0,
-                            teamRed2.toIntOrNull() ?: 0,
-                            teamBlue1.toIntOrNull() ?: 0,
-                            teamBlue2.toIntOrNull() ?: 0
-                        )
-                    }
-                }
+                    onConfirm(
+                        number.toInt(),
+                        teamRed1.toInt(),
+                        teamRed2.toInt(),
+                        teamBlue1.toInt(),
+                        teamBlue2.toInt()
+                    )
+                },
+                enabled = isInputValid
             ) {
                 Text("Adicionar")
             }
