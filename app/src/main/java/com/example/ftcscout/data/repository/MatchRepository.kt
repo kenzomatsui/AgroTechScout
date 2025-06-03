@@ -9,7 +9,11 @@ class MatchRepository(private val matchDao: MatchDao) {
 
     suspend fun getMatch(matchId: Int): Match? = matchDao.getMatch(matchId)
 
+    fun getAllMatches(): Flow<List<Match>> = matchDao.getAllMatches()
+
     suspend fun insertMatch(match: Match) = matchDao.insertMatch(match)
+
+    suspend fun updateMatch(match: Match) = matchDao.updateMatch(match)
 
     suspend fun deleteMatch(match: Match) = matchDao.deleteMatch(match)
 

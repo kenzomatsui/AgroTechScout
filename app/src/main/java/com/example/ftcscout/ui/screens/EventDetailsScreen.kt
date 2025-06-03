@@ -57,6 +57,7 @@ import com.example.ftcscout.FTCScoutApplication
 import com.example.ftcscout.data.entities.Match
 import com.example.ftcscout.ui.components.EmptyStateScreen
 import com.example.ftcscout.ui.viewmodels.EventDetailsViewModel
+import androidx.compose.foundation.clickable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,6 +71,7 @@ fun EventDetailsScreen(
         factory = EventDetailsViewModel.Factory(
             (LocalContext.current.applicationContext as FTCScoutApplication).eventRepository,
             (LocalContext.current.applicationContext as FTCScoutApplication).matchRepository,
+            (LocalContext.current.applicationContext as FTCScoutApplication).scoutDataRepository,
             eventId
         )
     )
@@ -159,7 +161,8 @@ fun EventDetailsScreen(
                                 MatchCard(
                                     match = match,
                                     onTeamClick = onTeamClick,
-                                    onScoutClick = onScoutClick
+                                    onScoutClick = onScoutClick,
+                                    onMatchClick = onMatchClick
                                 )
                             }
                         )
@@ -192,9 +195,9 @@ fun EventDetailsScreen(
         AlertDialog(
             onDismissRequest = { showDeleteConfirmDialog = false },
             title = { Text("Confirmar Exclusão") },
-            text = { Text("Tem certeza que deseja excluir este evento e todas as partidas associadas?") },
+            text = { Text("Tem certeza que deseja excluir este evento e todas as partidas e dados de scouting associados?") },
             confirmButton = {
-                TextButton(onClick = {
+                Button(onClick = {
                     viewModel.viewModelScope.launch {
                         viewModel.deleteEvent()
                         showDeleteConfirmDialog = false
@@ -205,7 +208,7 @@ fun EventDetailsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                Button(onClick = { showDeleteConfirmDialog = false }) {
                     Text("Cancelar")
                 }
             }
@@ -218,10 +221,13 @@ fun EventDetailsScreen(
 private fun MatchCard(
     match: Match,
     onTeamClick: (Int) -> Unit,
-    onScoutClick: (Int, Int) -> Unit
+    onScoutClick: (Int, Int) -> Unit,
+    onMatchClick: (Int) -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onMatchClick(match.matchId) }
     ) {
         Column(
             modifier = Modifier

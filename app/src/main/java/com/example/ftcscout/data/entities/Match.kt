@@ -22,5 +22,7 @@ data class Match(
     val teamRed1: Int,
     val teamRed2: Int,
     val teamBlue1: Int,
-    val teamBlue2: Int
+    val teamBlue2: Int,
+    val redScore: Int = 0,
+    val blueScore: Int = 0
 ) 

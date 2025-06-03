@@ -7,12 +7,14 @@ import com.example.ftcscout.data.entities.Event
 import com.example.ftcscout.data.entities.Match
 import com.example.ftcscout.data.repository.EventRepository
 import com.example.ftcscout.data.repository.MatchRepository
+import com.example.ftcscout.data.repository.ScoutDataRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class EventDetailsViewModel(
     private val eventRepository: EventRepository,
     private val matchRepository: MatchRepository,
+    private val scoutDataRepository: ScoutDataRepository,
     private val eventId: Int
 ) : ViewModel() {
 
@@ -50,12 +52,18 @@ class EventDetailsViewModel(
 
     fun deleteMatch(match: Match) {
         viewModelScope.launch {
+            scoutDataRepository.deleteScoutDataByMatchId(match.matchId)
             matchRepository.deleteMatch(match)
         }
     }
 
     fun deleteEvent() {
         viewModelScope.launch {
+            // Primeiro, obtenha os IDs das partidas para este evento
+            val matchesInEvent = matchRepository.getMatchesForEvent(eventId).first() // Coleta o estado atual
+            matchesInEvent.forEach { match ->
+                scoutDataRepository.deleteScoutDataByMatchId(match.matchId)
+            }
             eventRepository.deleteEventById(eventId)
         }
     }
@@ -63,12 +71,13 @@ class EventDetailsViewModel(
     class Factory(
         private val eventRepository: EventRepository,
         private val matchRepository: MatchRepository,
+        private val scoutDataRepository: ScoutDataRepository,
         private val eventId: Int
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(EventDetailsViewModel::class.java)) {
-                return EventDetailsViewModel(eventRepository, matchRepository, eventId) as T
+                return EventDetailsViewModel(eventRepository, matchRepository, scoutDataRepository, eventId) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }

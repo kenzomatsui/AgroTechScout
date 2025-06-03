@@ -8,7 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
-import com.example.ftcscout.ui.navigation.NavGraph
+import com.example.ftcscout.ui.navigation.MainNavigation
 import com.example.ftcscout.ui.theme.FTCScoutTheme
 
 class MainActivity : ComponentActivity() {
@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    NavGraph(navController = navController)
+                    MainNavigation(navController = navController)
                 }
             }
         }

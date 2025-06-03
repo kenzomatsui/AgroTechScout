@@ -12,8 +12,14 @@ interface MatchDao {
     @Query("SELECT * FROM matches WHERE matchId = :matchId")
     suspend fun getMatch(matchId: Int): Match?
 
+    @Query("SELECT * FROM matches")
+    fun getAllMatches(): Flow<List<Match>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMatch(match: Match)
+
+    @Update
+    suspend fun updateMatch(match: Match)
 
     @Delete
     suspend fun deleteMatch(match: Match)

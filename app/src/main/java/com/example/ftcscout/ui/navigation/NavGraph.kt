@@ -94,8 +94,9 @@ fun NavGraph(
             val context = LocalContext.current
             val database = AppDatabase.getDatabase(context)
             val scoutDataRepository = ScoutDataRepository(database.scoutDataDao())
+            val matchRepository = MatchRepository(database.matchDao())
             val viewModel: ScoutViewModel = viewModel(
-                factory = ScoutViewModel.Factory(scoutDataRepository, matchId, teamNumber)
+                factory = ScoutViewModel.Factory(scoutDataRepository, matchRepository, matchId, teamNumber)
             )
 
             ScoutScreen(
@@ -109,7 +110,9 @@ fun NavGraph(
         }
 
         composable(Screen.Analysis.route) {
-            AnalysisScreen()
+            AnalysisScreen(
+                onBackClick = { navController.popBackStack() }
+            )
         }
     }
 } 
